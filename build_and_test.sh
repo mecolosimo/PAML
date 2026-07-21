@@ -1,3 +1,3 @@
 #!bash
-make clean && make
+uv run make clean && make
 uv run pytest

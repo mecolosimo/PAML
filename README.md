@@ -7,6 +7,8 @@ see [HelloSilicon](https://github.com/below/HelloSilicon).
 
 Yes, Python can do this natively. This is just an excuss to try and
 merge assembler code with Python. And maybe it might be faster.
+I use gemini and claude (free account, slower but better IMHO)
+to help fix things.
 
 ## Quickstart
 
@@ -26,6 +28,6 @@ uv run make
 
 This will run the tests (and build the dylib).
 
-```python
+```bash
 ./build_and_test.sh
 ```

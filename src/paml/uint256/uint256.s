@@ -3,6 +3,7 @@
 .global _uint256_is_equal
 .global _uint256_is_greater
 .global _uint256_is_less
+.global _uint256_add
 .align 2
 
 .EQU UINT256_ID, 0X5B94B1AD6E34E064
@@ -117,10 +118,10 @@ gt_ptr_fail:
     ret
 
 // Inputs: 
-//   A = [x3:x2:x1:x0]  (High:Mid2:Mid1:Low)
-//   B = [x7:x6:x5:x4]  (High:Mid2:Mid1:Low)
+//   A = x0 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
 // Output:
-//   x0 = 1 if A < B, else 0
+//   x0 = 1 if A > B, else 0
 _uint256_is_less:
     // check to see if uint256 ints
     ldr x6, =UINT256_ID
@@ -134,14 +135,14 @@ _uint256_is_less:
 
     // load A and B
     ldr x2, [x0, #8]        // A high
-    ldr x3, [x0, #16]        // A mid2
-    ldr x4, [x0, #24]        // A mid1
-    ldr x5, [x0, #32]        // A low
+    ldr x3, [x0, #16]       // A mid2
+    ldr x4, [x0, #24]       // A mid1
+    ldr x5, [x0, #32]       // A low
 
     ldr x6, [x1, #8]        // B high
-    ldr x7, [x1, #16]        // B mid2
-    ldr x8, [x1, #24]        // B mid1
-    ldr x9, [x1, #32]        // B low
+    ldr x7, [x1, #16]       // B mid2
+    ldr x8, [x1, #24]       // B mid1
+    ldr x9, [x1, #32]       // B low
 
     // compare the most significant 64 bits
     cmp     x2, x6
@@ -165,4 +166,75 @@ _uint256_is_less:
 
 lt_ptr_fail:
     mov x0, #0        // false
+    ret
+
+// Input:
+//   A = x0 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
+//   ResStruct = x2 (ptr to structure of Res)
+// Output:
+//   None
+_uint256_add:
+    // check to see if uint256 ints
+    ldr x6, =UINT256_ID
+    ldr x7, [x0, #0]
+    cmp x7, x6
+    b.ne add_ptr_fail
+
+    ldr x7, [x1, #0]
+    cmp x7, x6
+    b.ne add_ptr_fail
+
+    // load A and B
+    ldr x3, [x0, #8]        // A high
+    ldr x4, [x0, #16]       // A mid2
+    ldr x5, [x0, #24]       // A mid1
+    ldr x6, [x0, #32]       // A low
+
+    ldr x7, [x1, #8]        // B high
+    ldr x8, [x1, #16]       // B mid2
+    ldr x9, [x1, #24]       // B mid1
+    ldr x10, [x1, #32]      // B low
+
+    // add low to high with carry propagation
+    mov x20, #0
+    ands xzr, xzr, x20       // clear all flags (including C, not sure if needed)
+    adds x14, x6, x10       // low: set carry flag
+    adcs x13, x5, x9        // mid1: use carry, set carry
+    adcs x12, x4, x8        // mid2: use carry, set carry
+    adcs x11, x3, x7        // high: use carry
+    //cset x15, cs            // convert carry flag to register (x15=1 if carry)    
+    b.cs add_overflow       // jump if carry (C flag = 1)
+
+    // store results
+    mov x20, #1
+    str x20, [x2, #0]       // success
+    mov x20, #0
+    str x20, [x2, #1]
+    str x15, [x2, #2]       // overflow should be zero
+
+    str x11, [x2, #8]       // high
+    str x12, [x2, #16]
+    str x13, [x2, #24]
+    str x14, [x2, #32]      // low
+
+    ret
+
+add_overflow:
+    mov x20, #0
+    str x20, [x2, #0]       // failed
+    mov x20, #2         
+    str x20, [x2, #1]       // overflow err
+    mov x20, #1
+    str x20, [x2, #2]       // overflow should be one
+
+    ret
+
+add_ptr_fail:
+    mov x20, #0
+    str x20, [x2, #0]       // failed
+    str x20, [x2, #2]       // didn't add so no overflow
+    mov x20, #1 
+    str x20, [x2, #1]       // ptr error (incorrect types)
+
     ret
