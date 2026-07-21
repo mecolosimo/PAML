@@ -2,7 +2,7 @@ from __future__ import annotations
 import ctypes
 from typing import Tuple, Optional
 
-from paml import mathlib, AddResult, Uint256Type
+from paml import mathlib, AddSubResult, Uint256Type
 
 class uint256Error(Exception):
     """Base for Uint256 operations."""
@@ -112,14 +112,13 @@ class uint256():
             - TypeError: If other is not a Uint256 instance
             - OverflowError: If sum exceeds 256-bit limit
         """
-        res = AddResult()
+        res = AddSubResult()
         mathlib.uint256_add(self.__op_ptr, other.__op_ptr, ctypes.byref(res))
         res_uint256 = uint256(res.high, res.mid2, res.mid1, res.low)
         if not res.success:
             if res.err_code == 1:
                 return None, uint256Error(f"Incompatable types")
             if res.err_code == 2:
-                # returns overflow value
                 return None, uint256OverflowError("Overflow")
         return res_uint256, None
 
@@ -138,5 +137,49 @@ class uint256():
             return res_uint256
         raise err
 
+    def sub(self, other: uint256) -> Tuple[Optional[uint256], Optional[Exception]]:
+        """
+        Subtract two 256-bit integers.
+
+        :param other: The value to subtract
+        :type other: uint256
+        :return: Tuple of (result, error). One will be None, one will have a value
+        :rtype: Tuple[Optional[Uint256], Optional[Exception]]
+
+        Return tuple format:
+            - Success: ``(uint256, None)`` - the sum and no error
+            - Error: ``(None, Exception)`` - the exception that occurred
+
+        :Raises in return:
+            - TypeError: If other is not a Uint256 instance
+            - Underflow: If subract underflowed
+        """
+        res = AddSubResult()
+        mathlib.uint256_sub(self.__op_ptr, other.__op_ptr, ctypes.byref(res))
+        res_uint256 = uint256(res.high, res.mid2, res.mid1, res.low)
+        if not res.success:
+            if res.err_code == 1:
+                return None, uint256Error(f"Incompatable types")
+            if res.err_code == 3:
+                return None, uint256UnderflowError("Underflow")
+        return res_uint256, None
+
+    def __sub__(self, other: uint256) -> uint256:
+        """
+        Subtract two 256-bit integers (Python's + op)
+        
+        :param other: The value to subtract
+        :rtype other: uint256
+        :return: The subtraction of self and other
+        :rtype: uint256
+        :raises uint256Error: If other is not a uint256 instance
+        """
+        res_uint256, err = self.sub(other)
+        if res_uint256:
+            return res_uint256
+        raise err
+
 # Explicitly export it at the package level
-__all__ = ["check_64bit_bounds", "split_uint256", "join_uint256", "uint256OverflowError", "uint256Error", "uint256"]
+__all__ = ["check_64bit_bounds", "split_uint256", "join_uint256", 
+           "uint256OverflowError", "uint256UnderflowError", "uint256Error", 
+           "uint256"]

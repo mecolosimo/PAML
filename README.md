@@ -31,3 +31,9 @@ This will run the tests (and build the dylib).
 ```bash
 ./build_and_test.sh
 ```
+
+## Overflow/Underflow
+
+Addition and subtraction are simple and do not deal with
+overflow or underflow issues. I have played many 8-bit games
+there were math issues. Math is hard.

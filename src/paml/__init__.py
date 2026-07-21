@@ -29,17 +29,17 @@ class Uint256Type(ctypes.Structure):
         ("low", uint64)
     ]
 
-class AddResult(ctypes.Structure):
-    """Result from adding uin256"""
+class AddSubResult(ctypes.Structure):
+    """Result from adding/subtracting uin256"""
     _fields_ = [
         ("success", uint8),
-        ("err_code", uint8),    # 1 ptr mismatch, 2 overflow
-        ("overflow", uint8),    # 1 if overflow
+        ("err_code", uint8),    # 0 no error, 1 ptr mismatch, 2 overflow, 3 underflow
         ("high", uint64),       # 8 byte offset
         ("mid2", uint64),
         ("mid1", uint64),
         ("low", uint64)
     ]
+
 
 # #############################
 # configure function signatures
@@ -57,8 +57,11 @@ mathlib.uint256_is_greater.restype = ctypes.c_int
 mathlib.uint256_is_less.argtypes = [ctypes.POINTER(Uint256Type), ctypes.POINTER(Uint256Type)]
 mathlib.uint256_is_less.restype = ctypes.c_int
 
-mathlib.uint256_add.argtypes = [ctypes.POINTER(Uint256Type), ctypes.POINTER(Uint256Type), ctypes.POINTER(AddResult)]
+mathlib.uint256_add.argtypes = [ctypes.POINTER(Uint256Type), ctypes.POINTER(Uint256Type), ctypes.POINTER(AddSubResult)]
 mathlib.uint256_add.restype = None
+
+mathlib.uint256_sub.argtypes = [ctypes.POINTER(Uint256Type), ctypes.POINTER(Uint256Type), ctypes.POINTER(AddSubResult)]
+mathlib.uint256_sub.restype = None
 
 # Explicitly export at the package level
 __all__ = ["mathlib", "AddResult"]

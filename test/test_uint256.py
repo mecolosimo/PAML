@@ -39,6 +39,13 @@ def tE():
             0x0000000000000000,
             0x0000000000000006)
 
+@pytest.fixture
+def tF():
+    return (0x0000000000000000,
+            0x0000000000000000,
+            0x0000000000000000,
+            0x0000000000000002)
+
 def test_uint256_cmp(tA, tB, tC):
 
     intA = uint256(*tA)
@@ -111,11 +118,29 @@ def test_uint256_add(tA, tC, tD, tE):
     assert intD is not None, "Creating intD result in None"
 
     intE = uint256(*tE)
-    assert intD is not None, "Creating intD result in None"
+    assert intD is not None, "Creating intE result in None"
 
     intAC = intA + intC
-    assert intAC == intE
+    assert intAC == intE, "intA + intC did NOT eq intE!"
     with pytest.raises(uint256OverflowError): 
         intAD, o = intA.add(intD)
         assert intAD == None, "intA + intD did NOT Overflow!"
+        raise o
+
+def test_subraction(tA, tC, tF):
+    
+    intA = uint256(*tA)
+    assert intA is not None, "Creating intA result in None"
+
+    intC = uint256(*tC)
+    assert intC is not None, "Creating intC result in None"
+
+    intF = uint256(*tF)
+    assert intF is not None, "Creating intF result in None"
+
+    intCA = intC - intA
+    assert intCA == intF, "intC - intA do NOT eq intF"
+    with pytest.raises(uint256UnderflowError): 
+        intAC, o = intA.sub(intC)
+        assert intAC == None, "intA + intD did NOT Overflow!"
         raise o

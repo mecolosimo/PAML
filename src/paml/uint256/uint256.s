@@ -4,6 +4,7 @@
 .global _uint256_is_greater
 .global _uint256_is_less
 .global _uint256_add
+.global _uint256_sub
 .align 2
 
 .EQU UINT256_ID, 0X5B94B1AD6E34E064
@@ -83,15 +84,15 @@ _uint256_is_greater:
     b.ne gt_ptr_fail
 
     // load A and B
-    ldr x2, [x0, #8]        // A high
-    ldr x3, [x0, #16]        // A mid2
-    ldr x4, [x0, #24]        // A mid1
-    ldr x5, [x0, #32]        // A low
+    ldr x2, [x0, #8]            // A high
+    ldr x3, [x0, #16]           // A mid2
+    ldr x4, [x0, #24]           // A mid1
+    ldr x5, [x0, #32]           // A low
 
-    ldr x6, [x1, #8]        // B high
-    ldr x7, [x1, #16]        // B mid2
-    ldr x8, [x1, #24]        // B mid1
-    ldr x9, [x1, #32]        // B low
+    ldr x6, [x1, #8]            // B high
+    ldr x7, [x1, #16]           // B mid2
+    ldr x8, [x1, #24]           // B mid1
+    ldr x9, [x1, #32]           // B low
 
     // compare the most significant 64 bits
     cmp     x2, x6
@@ -114,7 +115,7 @@ evaluate_gt_cmp:
     ret
 
 gt_ptr_fail:
-    mov x0, #0        // false
+    mov x0, #0                  // false
     ret
 
 // Inputs: 
@@ -134,15 +135,15 @@ _uint256_is_less:
     b.ne lt_ptr_fail
 
     // load A and B
-    ldr x2, [x0, #8]        // A high
-    ldr x3, [x0, #16]       // A mid2
-    ldr x4, [x0, #24]       // A mid1
-    ldr x5, [x0, #32]       // A low
+    ldr x2, [x0, #8]            // A high
+    ldr x3, [x0, #16]           // A mid2
+    ldr x4, [x0, #24]           // A mid1
+    ldr x5, [x0, #32]           // A low
 
-    ldr x6, [x1, #8]        // B high
-    ldr x7, [x1, #16]       // B mid2
-    ldr x8, [x1, #24]       // B mid1
-    ldr x9, [x1, #32]       // B low
+    ldr x6, [x1, #8]            // B high
+    ldr x7, [x1, #16]           // B mid2
+    ldr x8, [x1, #24]           // B mid1
+    ldr x9, [x1, #32]           // B low
 
     // compare the most significant 64 bits
     cmp     x2, x6
@@ -186,55 +187,104 @@ _uint256_add:
     b.ne add_ptr_fail
 
     // load A and B
-    ldr x3, [x0, #8]        // A high
-    ldr x4, [x0, #16]       // A mid2
-    ldr x5, [x0, #24]       // A mid1
-    ldr x6, [x0, #32]       // A low
+    ldr x3, [x0, #8]            // A high
+    ldr x4, [x0, #16]           // A mid2
+    ldr x5, [x0, #24]           // A mid1
+    ldr x6, [x0, #32]           // A low
 
-    ldr x7, [x1, #8]        // B high
-    ldr x8, [x1, #16]       // B mid2
-    ldr x9, [x1, #24]       // B mid1
-    ldr x10, [x1, #32]      // B low
+    ldr x7, [x1, #8]            // B high
+    ldr x8, [x1, #16]           // B mid2
+    ldr x9, [x1, #24]           // B mid1
+    ldr x10, [x1, #32]          // B low
 
     // add low to high with carry propagation
-    mov x20, #0
-    ands xzr, xzr, x20       // clear all flags (including C, not sure if needed)
-    adds x14, x6, x10       // low: set carry flag
-    adcs x13, x5, x9        // mid1: use carry, set carry
-    adcs x12, x4, x8        // mid2: use carry, set carry
-    adcs x11, x3, x7        // high: use carry
-    //cset x15, cs            // convert carry flag to register (x15=1 if carry)    
-    b.cs add_overflow       // jump if carry (C flag = 1)
+    adds x14, x6, x10           // low: set carry flag
+    adcs x13, x5, x9            // mid1: use carry, set carry
+    adcs x12, x4, x8            // mid2: use carry, set carry
+    adcs x11, x3, x7            // high: use carry    
+    b.cs add_overflow           // jump if carry (C flag = 1)
 
     // store results
     mov x20, #1
-    str x20, [x2, #0]       // success
+    str x20, [x2, #0]           // success
     mov x20, #0
-    str x20, [x2, #1]
-    str x15, [x2, #2]       // overflow should be zero
+    str x20, [x2, #1]           // no overflow
 
-    str x11, [x2, #8]       // high
+    str x11, [x2, #8]           // high
     str x12, [x2, #16]
     str x13, [x2, #24]
-    str x14, [x2, #32]      // low
+    str x14, [x2, #32]          // low
 
     ret
 
 add_overflow:
     mov x20, #0
-    str x20, [x2, #0]       // failed
+    str x20, [x2, #0]           // failed
     mov x20, #2         
-    str x20, [x2, #1]       // overflow err
-    mov x20, #1
-    str x20, [x2, #2]       // overflow should be one
+    str x20, [x2, #1]           // overflow error
 
     ret
 
 add_ptr_fail:
     mov x20, #0
-    str x20, [x2, #0]       // failed
-    str x20, [x2, #2]       // didn't add so no overflow
+    str x20, [x2, #0]           // failed
     mov x20, #1 
-    str x20, [x2, #1]       // ptr error (incorrect types)
+    str x20, [x2, #1]           // ptr error (incorrect types)
+
+    ret
+
+// Input:
+//   A = x0 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
+//   ResStruct = x2 (ptr to structure of Res)
+// Output:
+//   None
+_uint256_sub:
+    // check to see if uint256 ints
+    ldr x6, =UINT256_ID
+    ldr x7, [x0, #0]
+    cmp x7, x6
+    b.ne add_ptr_fail           // sub_ptr_fail
+
+    ldr x7, [x1, #0]
+    cmp x7, x6
+    b.ne add_ptr_fail           // sub_ptr_fail
+
+    // load A and B
+    ldr x3, [x0, #8]            // A high
+    ldr x4, [x0, #16]           // A mid2
+    ldr x5, [x0, #24]           // A mid1
+    ldr x6, [x0, #32]           // A low
+
+    ldr x7, [x1, #8]            // B high
+    ldr x8, [x1, #16]           // B mid2
+    ldr x9, [x1, #24]           // B mid1
+    ldr x10, [x1, #32]          // B low
+
+    // Use 'subs' to set the carry flag if a borrow is needed
+    subs x14, x6, x10           // x14 = x6 - x10 (sets borrow flag)
+    sbcs x13, x5, x9            // x13 = x5 - x9 - borrow
+    sbcs x12, x4, x8            // x12 = x4 - x8 - borrow
+    sbcs x11, x3, x7            // x11 = x3 - x7 - borrow
+    b.cc sub_underflow
+
+    // store results
+    mov x20, #1
+    str x20, [x2, #0]           // success
+    mov x20, #0
+    str x20, [x2, #1]           // no underflow, no error
+
+    str x11, [x2, #8]           // high
+    str x12, [x2, #16]
+    str x13, [x2, #24]
+    str x14, [x2, #32]          // low
+
+    ret
+
+sub_underflow:
+    mov x20, #0
+    str x20, [x2, #0]           // failed
+    mov x20, #3
+    str x20, [x2, #1]           // underflow error
 
     ret
