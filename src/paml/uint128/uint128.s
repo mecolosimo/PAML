@@ -1,20 +1,20 @@
-// functions for uint256 (32 bytes, four 64-bit uints)
-.global _init_uint256
-.global _uint256_is_equal
-.global _uint256_is_greater
-.global _uint256_is_less
-.global _uint256_add
-.global _uint256_sub
+// functions for uint128 (24 bytes, three 64-bit uints)
+.global _init_uint128
+.global _uint128_is_equal
+.global _uint128_is_greater
+.global _uint128_is_less
+.global _uint128_add
+.global _uint128_sub
 .align 2
 
-.EQU UINT256_ID, 0x5B94B1AD6E34E064
+.EQU UINT128_ID, 0xD0E9993544AFA89C
 
 // Inputs:
-//   Uint256Struct    = x0 (ptr)
+//   uint128Struct    = x0 (ptr)
 // Output:
 //   None
-_init_uint256:
-    ldr x1, =UINT256_ID      // Loads the full 64-bit constant from memory and store
+_init_uint128:
+    ldr x1, =UINT128_ID      // Loads the full 64-bit constant from memory and store
     str x1, [x0, #0]
 
     ret
@@ -24,9 +24,9 @@ _init_uint256:
 //   B = x1 (ptr to structure of A)
 // Output:
 //   x0 = 1 if A == B, else 0
-_uint256_is_equal:
-    // check to see if uint256 ints
-    ldr x6, =UINT256_ID
+_uint128_is_equal:
+    // check to see if uint128 ints
+    ldr x6, =UINT128_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne eq_ptr_fail
@@ -36,24 +36,19 @@ _uint256_is_equal:
     b.ne eq_ptr_fail
 
     // load A and B
-    ldr x2, [x0, #8]        // A high
-    ldr x3, [x0, #16]        // A mid2
-    ldr x4, [x0, #24]        // A mid1
-    ldr x5, [x0, #32]        // A low
+    ldr x2, [x0, #8]            // A high
+    ldr x3, [x0, #16]           // A mid
+    ldr x4, [x0, #24]           // A low
 
-    ldr x6, [x1, #8]        // B high
-    ldr x7, [x1, #16]        // B mid2
-    ldr x8, [x1, #24]        // B mid1
-    ldr x9, [x1, #32]        // B low
+    ldr x6, [x1, #8]            // B high
+    ldr x7, [x1, #16]           // B mid
+    ldr x8, [x1, #24]           // B low
 
     // compare the low 64 bits
-    cmp x5, x9
+    cmp x4, x8
 
     // compare mid1 bits ONLY IF the low bits matched (eq).
     // if they didn't match, force the flags to mismatch (Z=0).
-    ccmp x4, x8, #0, eq
-
-    // compare mid2 bits ONLY IF the low bits matched (eq).
     ccmp x3, x7, #0, eq
 
     // compare high bits ONLY IF all previous bits matched (eq).
@@ -72,9 +67,9 @@ eq_ptr_fail:
 //   B = x1 (ptr to structure of A)
 // Output:
 //   x0 = 1 if A > B, else 0
-_uint256_is_greater:
-    // check to see if uint256 ints
-    ldr x6, =UINT256_ID
+_uint128_is_greater:
+    // check to see if uint128 ints
+    ldr x6, =UINT128_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne gt_ptr_fail
@@ -85,14 +80,12 @@ _uint256_is_greater:
 
     // load A and B
     ldr x2, [x0, #8]            // A high
-    ldr x3, [x0, #16]           // A mid2
-    ldr x4, [x0, #24]           // A mid1
-    ldr x5, [x0, #32]           // A low
+    ldr x3, [x0, #16]           // A mid
+    ldr x4, [x0, #24]           // A low
 
     ldr x6, [x1, #8]            // B high
-    ldr x7, [x1, #16]           // B mid2
-    ldr x8, [x1, #24]           // B mid1
-    ldr x9, [x1, #32]           // B low
+    ldr x7, [x1, #16]           // B mid
+    ldr x8, [x1, #24]           // B low
 
     // compare the most significant 64 bits
     cmp     x2, x6
@@ -102,11 +95,8 @@ _uint256_is_greater:
     cmp     x3, x7
     b.ne    evaluate_gt_cmp     // if they aren't equal, mid bits decide the outcome
 
-    cmp     x4, x8
-    b.ne    evaluate_gt_cmp
-
     // high and mid bits were identical. Low bits decide everything
-    cmp     x5, x9
+    cmp     x4, x8
 
 evaluate_gt_cmp:
     // cset (Conditional Set) writes 1 into x0 if the last active comparison 
@@ -123,9 +113,9 @@ gt_ptr_fail:
 //   B = x1 (ptr to structure of B)
 // Output:
 //   x0 = 1 if A > B, else 0
-_uint256_is_less:
-    // check to see if uint256 ints
-    ldr x6, =UINT256_ID
+_uint128_is_less:
+    // check to see if uint128 ints
+    ldr x6, =UINT128_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne lt_ptr_fail
@@ -136,28 +126,23 @@ _uint256_is_less:
 
     // load A and B
     ldr x2, [x0, #8]            // A high
-    ldr x3, [x0, #16]           // A mid2
-    ldr x4, [x0, #24]           // A mid1
-    ldr x5, [x0, #32]           // A low
+    ldr x3, [x0, #16]           // A mid
+    ldr x4, [x0, #24]           // A low
 
     ldr x6, [x1, #8]            // B high
-    ldr x7, [x1, #16]           // B mid2
-    ldr x8, [x1, #24]           // B mid1
-    ldr x9, [x1, #32]           // B low
+    ldr x7, [x1, #16]           // B mid
+    ldr x8, [x1, #24]           // B low
 
     // compare the most significant 64 bits
     cmp     x2, x6
     b.ne    .evaluate_lt_cmp     // If they aren't equal, high bits decide the outcome
 
-    // high bits were identical.
+    // high bits were identical
     cmp     x3, x7
     b.ne    .evaluate_lt_cmp     // If they aren't equal, mid bits decide the outcome
 
-    cmp     x4, x8
-    b.ne    .evaluate_lt_cmp
-
     // high and mid bits were identical. Low bits decide everything
-    cmp     x5, x9
+    cmp     x4, x8
 
 .evaluate_lt_cmp:
     // cset (Conditional Set) writes 1 into x0 if the last active comparison 
@@ -175,9 +160,9 @@ lt_ptr_fail:
 //   ResStruct = x2 (ptr to structure of Res)
 // Output:
 //   None
-_uint256_add:
-    // check to see if uint256 ints
-    ldr x6, =UINT256_ID
+_uint128_add:
+    // check to see if uint128 ints
+    ldr x6, =UINT128_ID
     ldr x7, [x0, #0]
     cmp x7, x6
     b.ne add_ptr_fail
@@ -188,20 +173,17 @@ _uint256_add:
 
     // load A and B
     ldr x3, [x0, #8]            // A high
-    ldr x4, [x0, #16]           // A mid2
-    ldr x5, [x0, #24]           // A mid1
-    ldr x6, [x0, #32]           // A low
+    ldr x4, [x0, #16]           // A mid
+    ldr x5, [x0, #24]           // A low
 
-    ldr x7, [x1, #8]            // B high
-    ldr x8, [x1, #16]           // B mid2
-    ldr x9, [x1, #24]           // B mid1
-    ldr x10, [x1, #32]          // B low
+    ldr x6, [x1, #8]            // B high
+    ldr x7, [x1, #16]           // B mid
+    ldr x8, [x1, #24]           // B low
 
     // add low to high with carry propagation
-    adds x14, x6, x10           // low: set carry flag
-    adcs x13, x5, x9            // mid1: use carry, set carry
-    adcs x12, x4, x8            // mid2: use carry, set carry
-    adcs x11, x3, x7            // high: use carry    
+    adds x14, x5, x8            // low: set carry flag
+    adcs x13, x4, x7            // mid1: use carry, set carry
+    adcs x12, x3, x6            // high: use carry    
     b.cs add_overflow           // jump if carry (C flag = 1)
 
     // store results
@@ -210,10 +192,10 @@ _uint256_add:
     mov x20, #0
     str x20, [x2, #1]           // no overflow
 
-    str x11, [x2, #8]           // high
-    str x12, [x2, #16]
-    str x13, [x2, #24]
-    str x14, [x2, #32]          // low
+    // padding to 8 byte boundery
+    str x12, [x2, #8]          // high
+    str x13, [x2, #16]
+    str x14, [x2, #24]          // low
 
     ret
 
@@ -239,9 +221,9 @@ add_ptr_fail:
 //   ResStruct = x2 (ptr to structure of Res)
 // Output:
 //   None
-_uint256_sub:
-    // check to see if uint256 ints
-    ldr x6, =UINT256_ID
+_uint128_sub:
+    // check to see if uint128 ints
+    ldr x6, =UINT128_ID
     ldr x7, [x0, #0]
     cmp x7, x6
     b.ne add_ptr_fail           // sub_ptr_fail
@@ -252,20 +234,17 @@ _uint256_sub:
 
     // load A and B
     ldr x3, [x0, #8]            // A high
-    ldr x4, [x0, #16]           // A mid2
-    ldr x5, [x0, #24]           // A mid1
-    ldr x6, [x0, #32]           // A low
+    ldr x4, [x0, #16]           // A mid
+    ldr x5, [x0, #24]           // A low
 
-    ldr x7, [x1, #8]            // B high
-    ldr x8, [x1, #16]           // B mid2
-    ldr x9, [x1, #24]           // B mid1
-    ldr x10, [x1, #32]          // B low
+    ldr x6, [x1, #8]            // B high
+    ldr x7, [x1, #16]           // B mid
+    ldr x8, [x1, #24]           // B low
 
     // Use 'subs' to set the carry flag if a borrow is needed
-    subs x14, x6, x10           // x14 = x6 - x10 (sets borrow flag)
-    sbcs x13, x5, x9            // x13 = x5 - x9 - borrow
-    sbcs x12, x4, x8            // x12 = x4 - x8 - borrow
-    sbcs x11, x3, x7            // x11 = x3 - x7 - borrow
+    subs x14, x5, x8            // x13 = x5 - x9 (sets borrow flag)
+    sbcs x13, x4, x7            // x12 = x4 - x8 - borrow
+    sbcs x12, x3, x6            // x11 = x3 - x7 - borrow
     b.cc sub_underflow
 
     // store results
@@ -274,10 +253,9 @@ _uint256_sub:
     mov x20, #0
     str x20, [x2, #1]           // no underflow, no error
 
-    str x11, [x2, #8]           // high
-    str x12, [x2, #16]
-    str x13, [x2, #24]
-    str x14, [x2, #32]          // low
+    str x12, [x2, #8]           // low
+    str x13, [x2, #16]
+    str x14, [x2, #24]          // high
 
     ret
 

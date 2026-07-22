@@ -2,7 +2,7 @@ from __future__ import annotations
 import ctypes
 from typing import Tuple, Optional
 
-from paml import mathlib, AddSubResult, Uint256Type
+from paml import mathlib, AddSub256Result, check_64bit_bounds, Uint256Type
 
 class uint256Error(Exception):
     """Base for Uint256 operations."""
@@ -19,11 +19,6 @@ class uint256OverflowError(uint256Error):
 class uint256UnderflowError(uint256Error):
     """Subtraction went below zero."""
     pass
-
-MAX_64BIT = (2**64)
-def check_64bit_bounds(value: int) -> None:
-    if not (0 <= value <= MAX_64BIT):
-        raise ValueError(f"Integer {value} exceeds 32-bit capacity boundaries.")
 
 def split_uint256(val: int):
     """Splits a 256-bit Python integer into four 64-bit integers (High, Mid2, Mid1, Low)."""
@@ -112,7 +107,7 @@ class uint256():
             - TypeError: If other is not a Uint256 instance
             - OverflowError: If sum exceeds 256-bit limit
         """
-        res = AddSubResult()
+        res = AddSub256Result()
         mathlib.uint256_add(self.__op_ptr, other.__op_ptr, ctypes.byref(res))
         res_uint256 = uint256(res.high, res.mid2, res.mid1, res.low)
         if not res.success:
@@ -154,7 +149,7 @@ class uint256():
             - TypeError: If other is not a Uint256 instance
             - Underflow: If subract underflowed
         """
-        res = AddSubResult()
+        res = AddSub256Result()
         mathlib.uint256_sub(self.__op_ptr, other.__op_ptr, ctypes.byref(res))
         res_uint256 = uint256(res.high, res.mid2, res.mid1, res.low)
         if not res.success:

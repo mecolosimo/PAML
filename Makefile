@@ -1,4 +1,4 @@
-OBJS = src/paml/uint256/uint256.o
+OBJS = src/paml/uint256/uint256.o src/paml/uint128/uint128.o
 
 # Target library name
 TARGET = src/paml/libmath.dylib
@@ -15,7 +15,7 @@ ASFLAGS = -arch arm64 $(DEBUGFLGS)
 $(TARGET): $(OBJS)
 	clang -dynamiclib -o $(TARGET) $(OBJS)
 
-%.o: %.s
+$(OBJS): %.o: %.s
 	as $(ASFLAGS) $< -o $@
 
 .PHONY: clean all
