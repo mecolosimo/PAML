@@ -1,6 +1,7 @@
 import pytest
 
-from paml.uint128 import *
+from paml.uint192 import *
+from paml.uint256 import *
 
 @pytest.fixture
 def tA():
@@ -39,15 +40,22 @@ def tF():
             0x0000000000000000,
             0x0000000000000002)
 
-def test_uint128_cmp(tA, tB, tC):
+@pytest.fixture
+def tG():
+    return (0x0000000000000000,
+            0xE000000000000000,
+            0x0000000000000000,
+            0x0000000000000000)
 
-    intA = uint128(*tA)
+def test_uint192_cmp(tA, tB, tC):
+
+    intA = uint192(*tA)
     assert intA is not None, "Creating intA result in None"
 
-    intB = uint128(*tB)
+    intB = uint192(*tB)
     assert intB is not None, "Creating intB result in None"
 
-    intC = uint128(*tC)
+    intC = uint192(*tC)
     assert intC is not None, "Creating intC result in None"
 
     #print(f"\nintA: {intA.get()}\nintB: {intB.get()}", flush=True)
@@ -80,15 +88,15 @@ def test_uint128_cmp(tA, tB, tC):
     assert not intB > intC, "entryB > intC!?!"
     assert not intB >= intC, "entryB > intC!?!"
 
-def test_uint128_get(tA, tB, tC):
+def test_uint192_get(tA, tB, tC):
 
-    intA = uint128(*tA)
+    intA = uint192(*tA)
     assert intA is not None, "Creating intA result in None"
 
-    intB = uint128(*tB)
+    intB = uint192(*tB)
     assert intB is not None, "Creating intB result in None"
 
-    intC = uint128(*tC)
+    intC = uint192(*tC)
     assert intC is not None, "Creating intC result in None"
 
     # #########
@@ -99,45 +107,66 @@ def test_uint128_get(tA, tB, tC):
     assert tB == intB.get(), "tB !=  intB.get()"
     assert tC == intC.get(), "tC !=  intC.get()"
 
-def test_uint128_add(tA, tC, tD, tE):
+def test_uint192_add(tA, tC, tD, tE):
 
-    intA = uint128(*tA)
+    intA = uint192(*tA)
     assert intA is not None, "Creating intA result in None"
 
-    intC = uint128(*tC)
+    intC = uint192(*tC)
     assert intC is not None, "Creating intC result in None"
 
-    intD = uint128(*tD)
+    intD = uint192(*tD)
     assert intD is not None, "Creating intD result in None"
 
-    intE = uint128(*tE)
+    intE = uint192(*tE)
     assert intD is not None, "Creating intE result in None"
 
     intAC = intA + intC
-    print(f"\nintAC: {intAC.get()}")
-    print(f"intE: {intE.get()}")
     assert intAC == intE, "intA + intC did NOT eq intE!"
-    #with pytest.raises(uint128OverflowError): 
-    #    intAD, o = intA.add(intD)
-    #    assert intAD == None, "intA + intD did NOT Overflow!"
-    #    raise o
+    with pytest.raises(uint192OverflowError): 
+        intAD, o = intA.add(intD)
+        assert intAD == None, "intA + intD did NOT Overflow!"
+        raise o
 
-def test_uint128_subraction(tA, tC, tF):
+def test_uint192_subraction(tA, tC, tF):
     
-    intA = uint128(*tA)
+    intA = uint192(*tA)
     assert intA is not None, "Creating intA result in None"
 
-    intC = uint128(*tC)
+    intC = uint192(*tC)
     assert intC is not None, "Creating intC result in None"
 
-    intF = uint128(*tF)
+    intF = uint192(*tF)
     assert intF is not None, "Creating intF result in None"
 
     intCA = intC - intA
-    print(f"\nintCA: {intCA.get()}")
-    print(f"intF: {intF.get()}")
-    #assert intCA == intF, "intC - intA did NOT eq intF"
-    #with pytest.raises(uint128UnderflowError): 
-    #    intAC, o = intA.sub(intC)
-    #    assert intAC == None, "intA + intD did NOT Overflow!"
-    #    raise o
+    assert intCA == intF, "intC - intA did NOT eq intF"
+    with pytest.raises(uint192UnderflowError): 
+        intAC, o = intA.sub(intC)
+        assert intAC == None, "intA + intD did NOT Overflow!"
+        raise o
+    
+def test_uint192_mul(tB, tG):
+    
+    intB = uint192(*tB)
+    assert intB is not None, "Creating intB result in None"
+
+    intG = uint256(*tG)
+    assert intG is not None, "Creating intG result in None"
+
+    intB2, _ = intB.mul(2)
+    assert intB2 == intG, "intB * 2 is NOT equal to intG"
+
+    intB3, _ = intB.mul(3)
+    val = join_uint192(*tB)
+    val *= 3            # assume python gives correct answer
+    val_parts = split_uint256(val)
+    pintB3 = uint256(*val_parts)
+    assert intB3 == pintB3, "ARM and Python do NOT Match"
+
+    intB100, _ = intB.mul(100)
+    val = join_uint192(*tB)
+    val *= 100
+    val_parts = split_uint256(val)
+    pintB100 = uint256(*val_parts)
+    assert intB100 == pintB100, "ARM and Python do NOT Match"

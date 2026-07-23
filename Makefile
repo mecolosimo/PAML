@@ -1,4 +1,4 @@
-OBJS = src/paml/uint256/uint256.o src/paml/uint128/uint128.o
+OBJS = src/paml/uint256/uint256.o src/paml/uint192/uint192.o
 
 # Target library name
 TARGET = src/paml/libmath.dylib

@@ -1,8 +1,11 @@
 from __future__ import annotations
 import ctypes
-from typing import Tuple, Optional
+from typing import TYPE_CHECKING, Tuple, Optional
 
 from paml import mathlib, AddSub256Result, check_64bit_bounds, Uint256Type
+
+if TYPE_CHECKING:
+    from paml.uint192 import uint192
 
 class uint256Error(Exception):
     """Base for Uint256 operations."""
@@ -57,9 +60,14 @@ class uint256():
         """returns high, mid2, mid2, low"""
         return (self.__op_ptr.high, self.__op_ptr.mid2, self.__op_ptr.mid1, self.__op_ptr.low)
     
-    def __eq__(self, other: uint256):
-        if mathlib.uint256_is_equal(self.__op_ptr, other.__op_ptr):
-            return True
+    def __eq__(self, other: uint192 | uint256):
+        if type(other).__name__ == "uint192":
+            if mathlib.uint192_is_equal(self.__op_ptr, other.__op_ptr):
+                return True
+            return False
+        elif type(other).__name__ == "uint256":
+            if mathlib.uint256_is_equal(self.__op_ptr, other.__op_ptr):
+                return True
         return False
 
     def __ne__(self, other: uint256):

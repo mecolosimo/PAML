@@ -1,13 +1,14 @@
 // functions for uint256 (32 bytes, four 64-bit uints)
 .global _init_uint256
 .global _uint256_is_equal
+.global _uint256_is_equal_uint192
 .global _uint256_is_greater
 .global _uint256_is_less
 .global _uint256_add
 .global _uint256_sub
 .align 2
 
-.EQU UINT256_ID, 0x5B94B1AD6E34E064
+.include "src/paml/constants.s"
 
 // Inputs:
 //   Uint256Struct    = x0 (ptr)
@@ -37,14 +38,14 @@ _uint256_is_equal:
 
     // load A and B
     ldr x2, [x0, #8]        // A high
-    ldr x3, [x0, #16]        // A mid2
-    ldr x4, [x0, #24]        // A mid1
-    ldr x5, [x0, #32]        // A low
+    ldr x3, [x0, #16]       // A mid2
+    ldr x4, [x0, #24]       // A mid1
+    ldr x5, [x0, #32]       // A low
 
     ldr x6, [x1, #8]        // B high
-    ldr x7, [x1, #16]        // B mid2
-    ldr x8, [x1, #24]        // B mid1
-    ldr x9, [x1, #32]        // B low
+    ldr x7, [x1, #16]       // B mid2
+    ldr x8, [x1, #24]       // B mid1
+    ldr x9, [x1, #32]       // B low
 
     // compare the low 64 bits
     cmp x5, x9
@@ -68,8 +69,57 @@ eq_ptr_fail:
     ret
 
 // Inputs: 
+//   A = x0 (ptr to structure of A - uint256)
+//   B = x1 (ptr to structure of B - uint192)
+// Output:
+//   x0 = 1 if A == B, else 0
+_uint256_is_equal_uint192:
+    // check to see if A is a uint256
+    ldr x6, =UINT256_ID
+    ldr x7, [x0]
+    cmp x7, x6
+    b.ne eq_256_ptr_fail
+    
+    ldr x6, =UINT192_ID
+    ldr x7, [x1]
+    cmp x7, x6
+    b.ne eq_192_ptr_fail
+
+    // load A and B
+    ldr x2, [x0, #8]        // A high
+    ldr x3, [x0, #16]       // A mid2
+    ldr x4, [x0, #24]       // A mid1
+    ldr x5, [x0, #32]       // A low
+
+    ldr x6, [x1, #8]        // B high
+    ldr x7, [x1, #16]       // B mid
+    ldr x8, [x1, #24]       // B low
+
+    cbnz x2, eq_192_nz      // if high bit (bits 192..255) not zero not equal
+
+    // compare the low 64 bits
+    cmp x5, x8
+
+    // compare mid-mid1 bits ONLY IF the low bits matched (eq).
+    // if they didn't match, force the flags to mismatch (Z=0).
+    ccmp x4, x7, #0, eq
+
+    // compare high-mid1 bits ONLY IF all previous bits matched (eq).
+    ccmp x3, x6, #0, eq
+
+    // set x0 to 1 if the final state is Equal (Z=1), otherwise 0.
+    cset x0, eq
+    ret
+
+eq_192_nz:
+eq_256_ptr_fail:
+eq_192_ptr_fail:
+    mov x0, #0        // false
+    ret
+
+// Inputs: 
 //   A = x0 (ptr to structure of A)
-//   B = x1 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
 // Output:
 //   x0 = 1 if A > B, else 0
 _uint256_is_greater:
@@ -77,7 +127,7 @@ _uint256_is_greater:
     ldr x6, =UINT256_ID
     ldr x7, [x0]
     cmp x7, x6
-    b.ne gt_ptr_fail
+    b.ne eq_ptr_fail
 
     ldr x7, [x1]
     cmp x7, x6

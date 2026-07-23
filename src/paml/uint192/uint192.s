@@ -1,32 +1,33 @@
-// functions for uint128 (24 bytes, three 64-bit uints)
-.global _init_uint128
-.global _uint128_is_equal
-.global _uint128_is_greater
-.global _uint128_is_less
-.global _uint128_add
-.global _uint128_sub
+// functions for uint192 (24 bytes, three 64-bit uints)
+.global _init_uint192
+.global _uint192_is_equal
+.global _uint192_is_greater
+.global _uint192_is_less
+.global _uint192_add
+.global _uint192_sub
+.global _uint192_mul
 .align 2
 
-.EQU UINT128_ID, 0xD0E9993544AFA89C
+.include "src/paml/constants.s"
 
 // Inputs:
-//   uint128Struct    = x0 (ptr)
+//   uint192Struct    = x0 (ptr)
 // Output:
 //   None
-_init_uint128:
-    ldr x1, =UINT128_ID      // Loads the full 64-bit constant from memory and store
+_init_uint192:
+    ldr x1, =UINT192_ID      // Loads the full 64-bit constant from memory and store
     str x1, [x0, #0]
 
     ret
 
 // Inputs: 
 //   A = x0 (ptr to structure of A)
-//   B = x1 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
 // Output:
 //   x0 = 1 if A == B, else 0
-_uint128_is_equal:
-    // check to see if uint128 ints
-    ldr x6, =UINT128_ID
+_uint192_is_equal:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne eq_ptr_fail
@@ -47,7 +48,7 @@ _uint128_is_equal:
     // compare the low 64 bits
     cmp x4, x8
 
-    // compare mid1 bits ONLY IF the low bits matched (eq).
+    // compare mid bits ONLY IF the low bits matched (eq).
     // if they didn't match, force the flags to mismatch (Z=0).
     ccmp x3, x7, #0, eq
 
@@ -55,7 +56,7 @@ _uint128_is_equal:
     ccmp x2, x6, #0, eq
 
     // set x0 to 1 if the final state is Equal (Z=1), otherwise 0.
-    cset x0, eq            
+    cset x0, eq       
     ret
 
 eq_ptr_fail:
@@ -64,12 +65,12 @@ eq_ptr_fail:
 
 // Inputs: 
 //   A = x0 (ptr to structure of A)
-//   B = x1 (ptr to structure of A)
+//   B = x1 (ptr to structure of B)
 // Output:
 //   x0 = 1 if A > B, else 0
-_uint128_is_greater:
-    // check to see if uint128 ints
-    ldr x6, =UINT128_ID
+_uint192_is_greater:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne gt_ptr_fail
@@ -113,9 +114,9 @@ gt_ptr_fail:
 //   B = x1 (ptr to structure of B)
 // Output:
 //   x0 = 1 if A > B, else 0
-_uint128_is_less:
-    // check to see if uint128 ints
-    ldr x6, =UINT128_ID
+_uint192_is_less:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
     ldr x7, [x0]
     cmp x7, x6
     b.ne lt_ptr_fail
@@ -160,9 +161,9 @@ lt_ptr_fail:
 //   ResStruct = x2 (ptr to structure of Res)
 // Output:
 //   None
-_uint128_add:
-    // check to see if uint128 ints
-    ldr x6, =UINT128_ID
+_uint192_add:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
     ldr x7, [x0, #0]
     cmp x7, x6
     b.ne add_ptr_fail
@@ -221,9 +222,9 @@ add_ptr_fail:
 //   ResStruct = x2 (ptr to structure of Res)
 // Output:
 //   None
-_uint128_sub:
-    // check to see if uint128 ints
-    ldr x6, =UINT128_ID
+_uint192_sub:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
     ldr x7, [x0, #0]
     cmp x7, x6
     b.ne add_ptr_fail           // sub_ptr_fail
@@ -264,5 +265,58 @@ sub_underflow:
     str x20, [x2, #0]           // failed
     mov x20, #3
     str x20, [x2, #1]           // underflow error
+
+    ret
+
+// Input:
+//   A = x0 (ptr to structure of A, 192-bit uint)
+//   B = x1 64-bit uint
+//   ResStruct = x2 (ptr to structure of Res, holds 256-bit uint)
+// Output:
+//   None
+_uint192_mul:
+    // check to see if uint192 ints
+    ldr x6, =UINT192_ID
+    ldr x7, [x0, #0]
+    cmp x7, x6
+    b.ne mul_ptr_fail
+
+    ldr x3, [x0, #8]        // A high
+    ldr x4, [x0, #16]        // A mid
+    ldr x5, [x0, #24]       // A low
+
+    // A low 64-bits
+    mul x6, x5, x1          // low 64-bits
+    umulh x7, x5, x1
+
+    // mid 64-bits
+    mul x8, x4, x1
+    umulh x9, x4, x1
+    adds x8, x8, x7         // C mid1 64-bits
+    adc x9, x9, xzr
+
+    // mid 64-bits
+    mul x10, x3, x1
+    umulh x11, x3, x1
+    adds x10, x10, x9       // C mid2 64-bits
+    adc x11, x11, xzr       // C high 64-bits
+
+    // save
+    mov x20, #1
+    str x20, [x2, #0]       // success
+    mov x20, #0
+    str x20, [x2, #1]       // no err
+
+    str x6, [x2, #32]       // low
+    str x8, [x2, #24]
+    str x10, [x2, #16]
+    str x11, [x2, #8]       // high
+    ret
+
+mul_ptr_fail:
+    mov x20, #0
+    str x20, [x2, #0]           // failed
+    mov x20, #1 
+    str x20, [x2, #1]           // ptr error (incorrect types)
 
     ret
